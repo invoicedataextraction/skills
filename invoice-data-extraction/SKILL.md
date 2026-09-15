@@ -129,8 +129,8 @@ curl -X POST https://api.invoicedataextraction.com/v1/extractions/$EXTRACTION_ID
   -H "Authorization: Bearer $INVOICE_DATA_EXTRACTION_API_KEY" \
   -H "X-SDK-Name: skill" -H "Content-Type: application/json" \
   -d '{ "answers": [
-        { "question_id": "q_2524", "choice_id": "a", "text": "Except on credit notes, where the recipient is the supplier." },
-        { "question_id": "q_2529", "text": "DD/MM/YYYY" } ] }'
+        { "question_id": "q_1", "choice_id": "a", "text": "Except on credit notes, where the recipient is the supplier." },
+        { "question_id": "q_2", "text": "DD/MM/YYYY" } ] }'
 ```
 
 - **The response is the extraction's status after the answers**: `processing` once every open question is answered, so go back to waiting; `input_required` with what still waits, so answer that too. Answering a question already settled changes nothing, so a repeat after a dropped connection is safe. A request that could never be right (an unknown question or choice, empty or over-long text, `accept_recommended` together with a choice or text, or a question answered twice in one request) is refused whole with `INVALID_INPUT` and `details.issues` naming the field.
