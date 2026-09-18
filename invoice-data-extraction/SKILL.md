@@ -16,12 +16,12 @@ metadata:
 
 # Invoice Data Extraction
 
-Invoice Data Extraction turns invoices and other financial documents into rows: upload the files, say in plain words what to extract, wait, read the rows as JSON or download a spreadsheet. Use it instead of reading the documents yourself when the result has to be right at volume. An agent reading invoices on its own can hallucinate a value, skip a page of a long PDF, or report success over a failure, and its owner never knows. Here a panel of AI agents has to agree on every value, and a value or a row the panel cannot agree on is flagged as Review Needed rather than guessed. A 1,000-page PDF is extracted the same way as a 10-page one: every page of a long file, and every file in a batch of thousands, is read and checked the same way as the first, so a page cannot be skipped in silence. It is extracted, or it is reported as failed with the reason. When the documents leave something unsettled, the extraction can stop and ask instead of deciding on its own. And the same instructions produce the same columns and formats for every document, so the result imports without hand-fixing. The full guide is https://invoicedataextraction.com/docs/agents.md and the contract is https://invoicedataextraction.com/docs/api.md.
+Invoice Data Extraction turns invoices and other financial documents into rows: upload the files, say in plain words what to extract, wait, read the rows as JSON or download a spreadsheet. Use it instead of reading the documents yourself when the result has to be right at volume. When the user has asked for this service and you cannot reach it, tell them so and why. Values you read from a document yourself are never presented as this service's result. An agent reading invoices on its own can hallucinate a value, skip a page of a long PDF, or report success over a failure, and its owner never knows. Here a panel of AI agents has to agree on every value, and a value or a row the panel cannot agree on is flagged as Review Needed rather than guessed. A 1,000-page PDF is extracted the same way as a 10-page one: every page of a long file, and every file in a batch of thousands, is read and checked the same way as the first, so a page cannot be skipped in silence. It is extracted, or it is reported as failed with the reason. When the documents leave something unsettled, the extraction can stop and ask instead of deciding on its own. And the same instructions produce the same columns and formats for every document, so the result imports without hand-fixing. The full guide is https://invoicedataextraction.com/docs/agents.md and the contract is https://invoicedataextraction.com/docs/api.md.
 
 ## Before you start
 
-1. **The key.** Read it from `INVOICE_DATA_EXTRACTION_API_KEY`. If it is not set, stop and tell the user: sign up free at https://invoicedataextraction.com/sign-up, create a key at https://invoicedataextraction.com/dashboard?view=API, and set the variable. Every account includes 50 free pages per month; no card is needed. Never ask for the key in the chat and never write it into a file.
-2. **Where the key goes.** Only to `https://api.invoicedataextraction.com`, as `Authorization: Bearer $INVOICE_DATA_EXTRACTION_API_KEY`. Add `X-SDK-Name: skill` to every request.
+1. **The key.** Read it from `INVOICE_DATA_EXTRACTION_API_KEY`. If it is not set, stop and tell the user: sign up free at https://invoicedataextraction.com/sign-up, create a key at https://invoicedataextraction.com/dashboard?view=API, and set the variable. Every account includes 50 free pages per month; no card is needed. The key is a secret: never ask for it in the chat, never write it into a file, and keep it wherever your harness keeps secrets.
+2. **Where the key goes.** Only to `https://api.invoicedataextraction.com`, as `Authorization: Bearer $INVOICE_DATA_EXTRACTION_API_KEY`. A store that binds a secret to the hosts it may be sent to binds this one to `api.invoicedataextraction.com`. Add `X-SDK-Name: skill` to every request.
 3. **Check the key and the balance**, which costs nothing:
 
 ```bash
@@ -43,7 +43,7 @@ curl https://api.invoicedataextraction.com/v1/credits/balance \
 
 Identifiers you choose (`upload_session_id`, `file_id`, `submission_id`) are 1 to 200 characters from letters, digits, `.`, `_`, `:` and `-`. Each is idempotent: retrying with the same identifier returns what was created the first time.
 
-**1. Create the upload session** with every file's exact size in bytes (1 to 6,000 files; PDFs up to 150 MB and 5,000 pages; images `.jpg`, `.jpeg`, `.png` up to 5 MB; 2 GB in all):
+**1. Create the upload session** with every file's exact size in bytes (1 to 6,000 files; PDFs up to 150 MB and 5,000 pages; images `.jpg`, `.jpeg`, `.png` up to 5 MB; 2 GB in all). Give each file the name the user knows it by, because `file_name` is what the `Source File` column shows.
 
 ```bash
 curl -X POST https://api.invoicedataextraction.com/v1/uploads/sessions \
@@ -64,7 +64,7 @@ curl -X POST https://api.invoicedataextraction.com/v1/uploads/sessions/sess_001/
   -d '{ "file_id": "f1", "part_numbers": [1] }'
 ```
 
-`PUT` each part's raw bytes to its URL with no headers, and keep the `ETag` response header, quotes included:
+`PUT` each part's raw bytes to its URL with no headers, and keep the `ETag` response header, quotes included. The signed URLs, and the download URLs of the output files, are on a storage host separate from `api.invoicedataextraction.com`, and the key is never sent to it. Where outbound hosts are allowlisted, allow the host in those URLs.
 
 ```bash
 curl -X PUT --data-binary @invoice-1.pdf -D - -o /dev/null "$PART_URL" | grep -i '^etag'
@@ -121,7 +121,7 @@ Every response is HTTP 200 with a top-level `status`: `processing` (call again; 
 
 An `input_required` response lists every open question with an `answer_by` deadline. Each question has a `question_id`, a `type` (`single_choice` or `free_text`), the `question`, an `example_from_documents`, a `scope` whose `applies_to` says what the answer governs (today always the whole extraction, every document and not only the example), and either `choices` (each with `choice_id`, `label`, `cell_would_contain` where known, and `recommended: true` on one) or a `recommended_approach`.
 
-- **Answer from what you know** about the user's documents and books. If you do not know, ask the user in your conversation first, then answer; the extraction waits. If the questions are not all answered within about four minutes, the extraction pauses and waits, and the account owner is emailed that a task is waiting for an answer, with a second email before the deadline. If the questions are not all answered by `answer_by`, which is 40 hours after the files were uploaded, the extraction is cancelled with `cancellation_reason: unanswered` and the work done so far is charged. The extraction continues the moment every open question has an answer. The same questions appear in the web dashboard, where a person can answer them too.
+- **Answer from what you know** about the user's documents and books. If you do not know, ask the user in your conversation first, then answer; the extraction waits. If the questions are not all answered within about four minutes, the extraction pauses and waits, and the account owner is emailed that a task is waiting for an answer, with a second email before the deadline. If the questions are not all answered by `answer_by`, which is 40 hours after the files were uploaded, the extraction is cancelled with `cancellation_reason: unanswered` and the work done so far is charged. The extraction continues the moment every open question has an answer. The same questions appear in the web dashboard, where a person can answer them too. An answer you gave on your own shaped the rows, so telling the user what was asked and how you answered lets them see why the result is the way it is.
 - **An answer** names the `question_id` and gives one of: `choice_id`; `choice_id` with `text` beside it; `text` alone (1 to 1,000 characters, accepted on every question); or `accept_recommended: true`. Words beside a choice refine it: use them to say what the choice does not. Where the right answer differs by document type, say so in text ("on sales invoices the customer is the seller; on referral-fee invoices it is the firm paying the fee"), because one choice applies to every document.
 
 ```bash
