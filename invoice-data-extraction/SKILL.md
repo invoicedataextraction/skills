@@ -37,7 +37,7 @@ curl https://api.invoicedataextraction.com/v1/credits/balance \
 - **Put every convention the user cares about in the prompt**: date format, one row per invoice or per line item, what a missing value should hold, which pages to ignore, how credit notes are treated. The extraction can ask about what is left open, but do not rely on being asked: the questions are a safety net, and whatever the prompt settles is never a question.
 - **`output_structure`**: `per_invoice` (one row per document), `per_line_item` (one row per line with the invoice fields repeated), or `automatic`.
 - **`options.json_typed_values: true`**, always: numbers as numbers, yes/no as booleans, empty cells as `null`.
-- **`options.ask_questions`**: turn it on when you, or a person watching the dashboard, can answer within a few minutes, which is the case when you run this loop yourself, and leave it off for a job nobody is watching. What happens to an unanswered question is under *When the extraction asks* below.
+- **`options.ask_questions`**: on, whenever you run an extraction for a user yourself, on a scheduled run as much as in a conversation. Answer what you know, ask the user in your conversation for the rest, and the extraction waits. Off is the user's instruction, never your reading that nobody is watching. What happens while a question waits is under *When the extraction asks* below; what code you write for someone to keep does instead is under *The SDKs instead of curl*.
 
 ## Run the extraction
 
@@ -151,7 +151,7 @@ Each row is an object keyed by the output columns, with `Source File` and `Revie
 - `review_needed.count` with the `items` (`message`, `affected_fields`, `output_row_numbers` counted from 1 without the header, `source_references`): the rows a person should check and why. A clean completion is not proof that every cell is right; `review_needed` is the list of what is not yet settled.
 - `ai_uncertainty_notes`: assumptions made where the prompt left room, each with alternative prompt wordings and their purpose; add to the next prompt only the wording that says what the user wants.
 
-For a spreadsheet, the completed status response carries signed `output` URLs for the XLSX, CSV and JSON files, valid 5 minutes; `GET /v1/extractions/$EXTRACTION_ID/output?format=xlsx` gives a fresh one for 90 days. A plain `GET` on the URL returns the file. The completed response also carries `credits_deducted` and the remaining `credits_balance`; warn the user when it runs low.
+For a spreadsheet, the completed status response carries signed `output` URLs for the XLSX, CSV and JSON files, valid 5 minutes; `GET /v1/extractions/$EXTRACTION_ID/output?format=xlsx` gives a fresh one for 90 days, as `download_url`. A plain `GET` on the URL returns the file. The completed response also carries `credits_deducted` and the remaining `credits_balance`; warn the user when it runs low.
 
 **Failed.** The status is HTTP 200 with `success: false`; `error.message` says what to do. `retryable: true` (`CONCURRENT_TASK_LIMIT`, `SUBMISSION_STALLED`, `INTERNAL_ERROR`): submit again with a new `submission_id` after a pause. Otherwise fix the cause first: `INSUFFICIENT_CREDITS` (the user buys credits), `ENCRYPTED_FILE` or `FILE_PAGE_LIMIT_EXCEEDED` (`details.file_names` lists the files), `PROMPT_REJECTED` or `PROMPT_UNCLEAR` (rewrite the prompt as extraction instructions naming the fields).
 
@@ -189,7 +189,7 @@ if (status.status === "completed") {
 }
 ```
 
-When you are answering with judgment, run the steps yourself (submit, wait, read the questions, answer, wait) rather than passing an `on_questions` handler, which suits a fixed policy written in advance. Docs: https://invoicedataextraction.com/docs/node.md and https://invoicedataextraction.com/docs/python.md.
+When you are answering with judgment, run the steps yourself (submit, wait, read the questions, answer, wait) rather than passing an `on_questions` handler, which suits a fixed policy written in advance. Code you write for someone to keep and run without you leaves questions off unless it answers from such a policy; what the extraction then decided on its own comes back in `ai_uncertainty_notes`. Docs: https://invoicedataextraction.com/docs/node.md and https://invoicedataextraction.com/docs/python.md.
 
 ## A recurring job
 
