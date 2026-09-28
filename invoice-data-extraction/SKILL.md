@@ -33,7 +33,7 @@ curl https://api.invoicedataextraction.com/v1/credits/balance \
 
 ## Decide what to ask for
 
-- **The prompt** is a sentence (up to 2,500 characters) or an object naming exact output fields (up to 20; each a `name` of 2 to 50 characters and optional `prompt` of 3 to 600 characters; a `general_prompt` of up to 1,500). Use the object form whenever the columns must be named exactly.
+- **The prompt** is a sentence (up to 5,000 characters) or an object naming exact output fields (up to 20; each a `name` of 2 to 50 characters and optional `prompt` of 3 to 600 characters; a `general_prompt` of up to 1,500). Use the object form whenever the columns must be named exactly.
 - **Put every convention the user cares about in the prompt**: date format, one row per invoice or per line item, what a missing value should hold, which pages to ignore, how credit notes are treated. The extraction can ask about what is left open, but do not rely on being asked: the questions are a safety net, and whatever the prompt settles is never a question.
 - **`output_structure`**: `per_invoice` (one row per document), `per_line_item` (one row per line with the invoice fields repeated), or `automatic`.
 - **`options.json_typed_values: true`**, always: numbers as numbers, yes/no as booleans, empty cells as `null`.
