@@ -41,7 +41,7 @@ curl https://api.invoicedataextraction.com/v1/credits/balance \
 
 ## Run the extraction
 
-Identifiers you choose (`upload_session_id`, `file_id`, `submission_id`) are 1 to 200 characters from letters, digits, `.`, `_`, `:` and `-`. Each is idempotent: retrying with the same identifier returns what was created the first time.
+Identifiers you choose (`upload_session_id`, `file_id`, `submission_id`) are 1 to 200 characters from letters, digits, `.`, `_`, `:` and `-`. Each is idempotent: retrying with the same identifier returns what was created the first time. Use a new `upload_session_id` for every set of files and a new `submission_id` for every extraction: a different request under one already used is refused with a `409` (`SESSION_ALREADY_INITIALIZED`, `SUBMISSION_ID_ALREADY_USED`) whose message says what to do.
 
 **1. Create the upload session** with every file's exact size in bytes (1 to 6,000 files; PDFs up to 150 MB and 5,000 pages; images `.jpg`, `.jpeg`, `.png` up to 5 MB; 2 GB in all). Give each file the name the user knows it by, because `file_name` is what the `Source File` column shows.
 
